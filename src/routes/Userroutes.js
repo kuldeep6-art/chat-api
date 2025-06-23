@@ -11,7 +11,26 @@ module.exports = async (fastify) => {
     }
     reply.send(user);
   });
+  //get all users
+fastify.get('/users/search', { preHandler: fastify.auth }, async (request, reply) => {
+  const { query } = request.query;
 
+  if (!query || query.trim() === '') {
+    reply.code(400).send({ error: 'Search query is required' });
+    return;
+  }
+
+  try {
+    const users = await User.find(
+      { username: { $regex: query, $options: 'i' } },
+      'username'
+    );
+    const usernames = users.map(user => user.username);
+    reply.send({ users: usernames });
+  } catch (error) {
+    reply.code(500).send({ error: 'Internal server error' });
+  }
+});
   // Update User Profile
   fastify.put('/users/:id', { preHandler: fastify.auth }, async (request, reply) => {
     if (request.user.userId !== request.params.id) {
